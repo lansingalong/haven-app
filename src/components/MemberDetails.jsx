@@ -5,8 +5,8 @@ const Field = ({ label, value, valueClass = '' }) => (
   </div>
 )
 
-const Section = ({ title, children }) => (
-  <div className="border border-gray-200 rounded mb-3">
+const Section = ({ title, children, id }) => (
+  <div id={id} className="border border-gray-200 rounded mb-3 scroll-mt-2">
     <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
       <h3 className="text-xs font-semibold text-gray-700">{title}</h3>
     </div>
@@ -46,16 +46,20 @@ export default function MemberDetails({ member }) {
       <div className="grid grid-cols-2 gap-3">
         {/* Left column */}
         <div>
-          <Section title="Personal Details">
-            <Field label="Member Name (F-M-L)" value="Henry Tom Garcia" />
-            <Field label="Preferred Name" value="Preferred Name xbeew" />
-            <Field label="Gender" value="Male" />
-            <Field label="Gender Identity" value="Male" />
-            <Field label="Sexual Orientation" value={null} />
-            <Field label="Preferred Pronouns" value="He/him/his" />
-            <Field label="Date of Birth" value="January 01, 2001" />
-            <Field label="New ID" value="AH0000007" />
-            <Field label="Member ID" value="AH0000007" />
+          <Section title="Personal Details" id="member-personal">
+            <Field label="Member Name (F-M-L)" value={member.name} />
+            <Field label="Preferred Name" value={member.preferredName} />
+            <Field label="Gender" value={member.gender} />
+            <Field label="Gender Identity" value={member.genderIdentity} />
+            <Field label="Sexual Orientation" value={member.sexualOrientation} />
+            <Field label="Preferred Pronouns" value={member.preferredPronouns} />
+            <Field label="Date of Birth" value={
+              member.dob
+                ? new Date(member.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' })
+                : null
+            } />
+            <Field label="New ID" value={member.id} />
+            <Field label="Member ID" value={member.id} />
             <Field label="Preferred Contact Format" value={null} />
             <div className="col-span-2">
               <Field label="Service Interruption" value={
@@ -64,51 +68,55 @@ export default function MemberDetails({ member }) {
             </div>
           </Section>
 
-          <Section title="Phone Numbers">
-            <Field label="Preferred Phone" value={<span className="text-blue-600 underline cursor-pointer">309-851-3064</span>} />
+          <Section title="Phone Numbers" id="member-phone">
+            <Field label="Preferred Phone" value={<span className="text-blue-600 underline cursor-pointer">{member.preferredPhone}</span>} />
             <Field label="Primary Phone" value={
-              <span className="flex items-center gap-1">
-                <span className="text-blue-600 underline cursor-pointer">259-391-3698</span>
-                <span className="w-3.5 h-3.5 rounded-full border border-gray-400 flex items-center justify-center text-[8px] text-gray-500 cursor-pointer">i</span>
-              </span>
+              member.primaryPhone
+                ? <span className="flex items-center gap-1">
+                    <span className="text-blue-600 underline cursor-pointer">{member.primaryPhone}</span>
+                    <span className="w-3.5 h-3.5 rounded-full border border-gray-400 flex items-center justify-center text-[8px] text-gray-500 cursor-pointer">i</span>
+                  </span>
+                : null
             } />
-            <Field label="Cell Phone" value={<span className="text-blue-600 underline cursor-pointer">111-111-1111</span>} />
-            <Field label="Alternate Phone" value={<span className="text-blue-600 underline cursor-pointer">309-851-3064</span>} />
-            <Field label="Fax" value="233-366-0778" />
-            <Field label="Preferred Time to Call" value="M-F 12pm-1pm" />
+            <Field label="Cell Phone" value={member.cellPhone ? <span className="text-blue-600 underline cursor-pointer">{member.cellPhone}</span> : null} />
+            <Field label="Alternate Phone" value={member.alternatePhone ? <span className="text-blue-600 underline cursor-pointer">{member.alternatePhone}</span> : null} />
+            <Field label="Fax" value={member.fax} />
+            <Field label="Preferred Time to Call" value={member.preferredCallTime} />
           </Section>
         </div>
 
         {/* Right column */}
         <div>
-          <Section title="Languages">
-            <Field label="Primary Language" value="English" />
-            <Field label="Preferred Written Language(s)" value="Spanish" />
-            <Field label="Preferred Spoken Language(s)" value="English" />
+          <Section title="Languages" id="member-languages">
+            <Field label="Primary Language" value={member.primaryLanguage} />
+            <Field label="Preferred Written Language(s)" value={member.writtenLanguage} />
+            <Field label="Preferred Spoken Language(s)" value={member.spokenLanguage} />
             <div className="col-span-2">
-              <Field label="Communication Impairment" value="Visually Impaired, Large Font, Hard of Hearing, Illiterate, Interpreter Needed, Braille Needed, Deaf, Aphasic" />
+              <Field label="Communication Impairment" value={member.communicationImpairments} />
             </div>
           </Section>
 
-          <Section title="Address">
+          <Section title="Address" id="member-address">
             <Field label="Address" value={
-              <span className="flex items-center gap-1">
-                Address gikmt
-                <span className="w-3.5 h-3.5 rounded-full border border-gray-400 flex items-center justify-center text-[8px] text-gray-500 cursor-pointer">i</span>
-              </span>
+              member.address
+                ? <span className="flex items-center gap-1">
+                    {member.address}
+                    <span className="w-3.5 h-3.5 rounded-full border border-gray-400 flex items-center justify-center text-[8px] text-gray-500 cursor-pointer">i</span>
+                  </span>
+                : null
             } />
-            <Field label="City" value="CityElgM" />
-            <Field label="State / Province" value="VA" />
-            <Field label="Zip / Postal Code" value="20191" />
-            <Field label="County" value="ADA COUNTY" />
-            <Field label="Country" value={null} />
+            <Field label="City" value={member.city} />
+            <Field label="State / Province" value={member.state} />
+            <Field label="Zip / Postal Code" value={member.zip} />
+            <Field label="County" value={member.county} />
+            <Field label="Country" value={member.country} />
           </Section>
 
-          <Section title="Medical IDs">
-            <Field label="Primary Insurance" value={null} />
-            <Field label="Primary Ins. Policy #" value="XvAicS" />
-            <Field label="Secondary Insurance" value="Medicaid" />
-            <Field label="Secondary Ins. Policy #" value="98767682" />
+          <Section title="Medical IDs" id="member-medical-ids">
+            <Field label="Primary Insurance" value={member.primaryInsurance} />
+            <Field label="Primary Ins. Policy #" value={member.primaryPolicyNum} />
+            <Field label="Secondary Insurance" value={member.secondaryInsurance} />
+            <Field label="Secondary Ins. Policy #" value={member.secondaryPolicyNum} />
           </Section>
         </div>
       </div>

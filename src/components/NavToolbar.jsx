@@ -1,4 +1,19 @@
-export default function NavToolbar({ member }) {
+import { useState, useEffect, useRef } from 'react'
+
+export default function NavToolbar({ member, members, activeMemberId, onMemberChange }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   return (
     <div className="flex-shrink-0 bg-white border-b border-gray-200">
       <div className="flex items-stretch px-1 overflow-x-auto">
@@ -27,16 +42,58 @@ export default function NavToolbar({ member }) {
           </svg>
         </button>
 
-        {/* Member tab */}
-        <button className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-700 border border-gray-300 rounded-t bg-white hover:bg-blue-50 mx-1 my-1 whitespace-nowrap">
-          <svg className="w-3.5 h-3.5 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-          </svg>
-          <span className="truncate max-w-[90px]">{member.name.substring(0, 13)}…</span>
-          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+        {/* Member tab — dropdown selector */}
+        <div className="relative mx-1 my-1" ref={dropdownRef}>
+          <button
+            onClick={() => setDropdownOpen(o => !o)}
+            className={`flex items-center gap-1 px-2.5 py-1 text-xs border rounded-t bg-white whitespace-nowrap transition-colors ${
+              dropdownOpen
+                ? 'border-[#007999] text-[#007999] bg-blue-50'
+                : 'border-gray-300 text-gray-700 hover:bg-blue-50'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+            </svg>
+            <span className="truncate max-w-[100px]">{member.name.substring(0, 16)}{member.name.length > 16 ? '…' : ''}</span>
+            <svg
+              className="w-3 h-3 text-gray-400 transition-transform duration-150"
+              style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute top-full left-0 z-50 bg-white border border-gray-200 shadow-lg rounded-b min-w-[200px]">
+              {members.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => { onMemberChange(m.id); setDropdownOpen(false) }}
+                  className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
+                    m.id === activeMemberId
+                      ? 'bg-blue-50 text-[#007999] font-medium'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{m.name}</div>
+                    <div className="text-gray-400 text-[10px]">{m.id} · DOB {m.dob}</div>
+                  </div>
+                  {m.id === activeMemberId && (
+                    <svg className="w-3 h-3 text-[#007999] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="w-px bg-gray-200 mx-0.5 my-1" />
 

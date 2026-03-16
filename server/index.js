@@ -17,14 +17,11 @@ const USE_MOCK = !API_KEY || API_KEY === 'your_anthropic_api_key_here'
 
 const client = USE_MOCK ? null : new Anthropic({ apiKey: API_KEY })
 
-const SYSTEM_PROMPT = `You are Haven, an AI assistant embedded in the HealthEdge healthcare management platform. You help care coordinators quickly access and understand member information.
+// ─── System prompts per member ────────────────────────────────────────────────
 
-You are currently viewing the record for the following member:
-- Name: {memberName}
-- Member ID: {memberId}
-- Date of Birth: {dob}
-- Preferred Phone: {phone}
-- Primary Care Provider: {pcp}
+const HENRY_SYSTEM = `You are Haven, an AI assistant embedded in the HealthEdge healthcare management platform. You help care coordinators quickly access and understand member information.
+
+You are currently viewing the record for Henry Tom Garcia (ID: AH0000007, DOB: 01/01/2001).
 
 MEMBER CONTEXT (simulated data for demo):
 - Henry Tom Garcia has been diagnosed with Type 2 diabetes (8 months ago)
@@ -52,36 +49,49 @@ INSTRUCTIONS:
 - Focus on actionable insights for the care coordinator.
 - Keep responses focused and scannable.`
 
-// ─── Smart demo response generator ───────────────────────────────────────────
+const LISA_SYSTEM = `You are Haven, an AI assistant embedded in the HealthEdge healthcare management platform. You help care coordinators quickly access and understand member information.
 
-const HENRY = {
-  name: 'Henry Tom Garcia', age: 24, dob: '01/01/2001',
-  phone: '909-851-3064', memberId: 'AH0000007', havenId: 'AH00000009',
-  insurance: 'Medicaid', eligibilityEnd: 'December 31, 2026',
-  pcp: 'Ambetter', job: 'restaurant manager',
-  diagnoses: ['Type 2 Diabetes (diagnosed ~8 months ago)'],
-  medications: [{ name: 'Metformin', dose: '1000mg', frequency: 'twice daily', adherence: 'only 2 fills in past 6 months' }],
-  labs: [{ name: 'A1C', value: '8.4%', flag: 'elevated', goal: '<7.0%' }],
-  careGaps: ['Annual diabetic eye exam (overdue)', 'Diabetes self-management education (not enrolled)'],
-  visits: [
-    { date: 'April 10, 2025', type: 'Emergency', reason: 'blood sugar management' },
-    { date: 'April 18, 2025', type: 'PCP', provider: 'Ambetter' },
-  ],
-  contactPref: 'Monday–Friday, 12:00 PM – 1:00 PM',
-  commImpairments: ['Visually impaired — large font materials required', 'English spoken; prefers written materials in Spanish'],
-  flags: ['New diabetes diagnosis with poor engagement', 'Missed follow-up appointments', 'Poor medication adherence'],
-}
+You are currently viewing the record for Lisa Marie Thompson (ID: AH0000042, DOB: 05/15/1978).
+
+MEMBER CONTEXT (simulated data for demo):
+- Lisa Marie Thompson, age 47, diagnosed with hypertension and hyperlipidemia (2 years ago)
+- Prescribed Lisinopril 10mg daily (for hypertension) and Atorvastatin 40mg nightly (for cholesterol)
+- Generally good medication adherence — fills both prescriptions regularly
+- Most recent BP reading: 148/92 mmHg (above target of <130/80)
+- LDL cholesterol: 118 mg/dL (above target of <100 mg/dL)
+- Works as a high school teacher — weekday schedule, available after 4pm
+- Primary Insurance: Medicare Advantage (BlueCross)
+- Eligibility end date: December 31, 2026
+- Care gaps: Annual wellness visit (overdue), Mammogram (overdue 14 months)
+- Preferred contact time: Weekdays after 4:00 PM
+- No communication impairments; English only
+- Last PCP visit: January 8, 2025
+- No ER visits in past year
+- BMI: 28.4 (overweight)
+- Referred to dietitian — appointment not yet scheduled
+- Family history: Hypertension (mother), cardiac event (father at 62)
+
+INSTRUCTIONS:
+- Be concise and clinically relevant. Format responses clearly.
+- Use bullet points for lists, bold for section headers.
+- Include numbered citations like [1] when referencing specific data points.
+- Add citation links at the bottom: [1] Source description
+- Do not make up medical information beyond what's provided.
+- Focus on actionable insights for the care coordinator.
+- Keep responses focused and scannable.`
+
+// ─── Mock response generator ──────────────────────────────────────────────────
 
 function classify(q) {
   const t = q.toLowerCase()
-  if (/med(ication|s)?|metformin|prescription|drug|pharmacy|pill|\brx\b/.test(t)) return 'medication'
+  if (/med(ication|s)?|lisinopril|atorvastatin|metformin|prescription|drug|pharmacy|pill|\brx\b/.test(t)) return 'medication'
   if (/adher|complian|refill|fill(ed|s)?|pickup|taking|miss(ed|ing)?/.test(t)) return 'adherence'
-  if (/a1c|hba1c|lab|result|test|blood sugar|glucose/.test(t)) return 'labs'
-  if (/care gap|gap|overdue|preventive|educat|enroll|missing care/.test(t)) return 'caregaps'
+  if (/a1c|hba1c|lab|result|test|blood|glucose|bp|blood pressure|ldl|cholesterol/.test(t)) return 'labs'
+  if (/care gap|gap|overdue|preventive|educat|enroll|missing care|mammogram|wellness/.test(t)) return 'caregaps'
   if (/contact|reach|call|best time|when to|phone|schedul/.test(t)) return 'contact'
-  if (/eligib|coverage|insur|medicaid|expire|renew|policy/.test(t)) return 'eligibility'
+  if (/eligib|coverage|insur|medicaid|medicare|expire|renew|policy/.test(t)) return 'eligibility'
   if (/visit|emergency|\ber\b|hospital|pcp|appointment|seen by/.test(t)) return 'visits'
-  if (/diagnos|condition|diabetes|illness|disease/.test(t)) return 'diagnosis'
+  if (/diagnos|condition|diabetes|hypertension|illness|disease|hyperlipid|cholesterol/.test(t)) return 'diagnosis'
   if (/service|benefit|program|care manag/.test(t)) return 'services'
   if (/communi|language|speak|spanish|english|impair|vision|visual/.test(t)) return 'communication'
   if (/flag|alert|concern|risk|issue|problem|warn/.test(t)) return 'flags'
@@ -90,7 +100,7 @@ function classify(q) {
   return 'general'
 }
 
-function buildResponse(intent, question) {
+function buildHenryResponse(intent) {
   switch (intent) {
     case 'medication':
       return `**Current Medications**
@@ -137,7 +147,7 @@ A1C at 8.4% — elevated above 7.0% goal — likely partly due to inconsistent m
 
 ---
 [1] Pharmacy fill records
-[2] Social determinants — occupational history
+[2] Social history — occupational background
 [3] Lab results`
 
     case 'labs':
@@ -156,12 +166,12 @@ An A1C of 8.4% indicates Henry's blood sugar has been poorly controlled over the
 - ER visit for blood sugar management (April 10, 2025) [3]
 
 **Recommended Follow-Up**
-Repeat A1C in 3 months following medication adherence intervention. Consider referral to diabetes educator.
+Repeat A1C in 3 months following medication adherence intervention.
 
 ---
 [1] Clinical lab results
 [2] Pharmacy fill records
-[3] ER visit summary`
+[3] ER visit record`
 
     case 'caregaps':
       return `**Open Care Gaps — Henry Tom Garcia**
@@ -210,8 +220,8 @@ Henry works as a restaurant manager with irregular evening and weekend hours. Th
 
 ---
 [1] Member preferences
-[2] Occupational/social history
-[3] Communication impairments flag`
+[2] Social history — occupational background
+[3] Communication impairments record`
 
     case 'eligibility':
       return `**Eligibility & Coverage — Henry Tom Garcia**
@@ -228,10 +238,8 @@ Henry works as a restaurant manager with irregular evening and weekend hours. Th
 
 **Recommended:** Set a reminder in Q4 2026 to confirm renewal and assist with re-enrollment if needed.
 
-**Note:** Medicaid eligibility is subject to annual redetermination. Henry's care coordinator should verify the renewal timeline closer to the expiration date.
-
 ---
-[1] Eligibility system`
+[1] Eligibility system — insurance record`
 
     case 'visits':
       return `**Recent Clinical Visits — Henry Tom Garcia**
@@ -244,9 +252,6 @@ Henry works as a restaurant manager with irregular evening and weekend hours. Th
 **ER Visit Context**
 The April 10 ER visit was likely related to poor blood glucose control — consistent with low medication adherence (2 fills in 6 months). This represents an avoidable utilization event.
 
-**Follow-Up Status**
-Henry did have a PCP follow-up 8 days after the ER visit. However, subsequent engagement has been limited.
-
 **Missed Appointments**
 Henry has a history of missed follow-up appointments. [3]
 
@@ -254,9 +259,9 @@ Henry has a history of missed follow-up appointments. [3]
 Schedule next PCP or diabetes educator visit and confirm with a reminder call during his contact window (M-F 12–1 PM).
 
 ---
-[1] ER visit record — April 10, 2025
-[2] PCP visit record — April 18, 2025
-[3] Appointment history`
+[1] ER visit record
+[2] PCP visit record
+[3] Care management flags`
 
     case 'diagnosis':
       return `**Active Diagnoses — Henry Tom Garcia**
@@ -275,13 +280,10 @@ Schedule next PCP or diabetes educator visit and confirm with a reminder call du
 - Diabetic retinopathy — eye exam overdue [3]
 - Neuropathy, nephropathy — standard monitoring recommended
 
-**Engagement Level**
-Currently flagged for poor care engagement: missed appointments, low medication adherence, not enrolled in diabetes education.
-
 ---
-[1] Clinical record
+[1] Clinical record — personal details
 [2] Social history
-[3] Care gaps`
+[3] Care gap tracker`
 
     case 'services':
       return `**Services & Programs — Henry Tom Garcia**
@@ -300,7 +302,7 @@ Currently flagged for poor care engagement: missed appointments, low medication 
    - Status: Care gap — overdue
 
 **Currently Active:**
-- Medicaid coverage (active through Dec 31, 2026) [3]
+- Medicare Advantage coverage (active through Dec 31, 2026) [3]
 - PCP relationship with Ambetter
 
 **Communication Note**
@@ -309,7 +311,7 @@ Materials must be in large print; offer Spanish written option where available. 
 ---
 [1] Care management system
 [2] Preventive care tracker
-[3] Eligibility system
+[3] Eligibility system — insurance record
 [4] Communication preferences`
 
     case 'communication':
@@ -331,11 +333,10 @@ Materials must be in large print; offer Spanish written option where available. 
 1. Call during preferred window — avoid evenings/weekends
 2. Confirm he can read materials before sending
 3. Provide Spanish-language large-print handouts when possible
-4. Use simple, jargon-free language
 
 ---
 [1] Communication impairments and language record
-[2] Member preferences`
+[2] Member preferences — phone numbers`
 
     case 'flags':
       return `**Active Alerts & Flags — Henry Tom Garcia**
@@ -361,10 +362,10 @@ One ER visit (April 10, 2025) likely avoidable with better diabetes management. 
 
 ---
 [1] Pharmacy fill records
-[2] Lab results
+[2] Lab results — clinical record
 [3] Care management flags
 [4] Care gap tracker
-[5] Claims/utilization data`
+[5] ER visit record`
 
     case 'demographics':
       return `**Member Demographics — Henry Tom Garcia**
@@ -385,7 +386,7 @@ One ER visit (April 10, 2025) likely avoidable with better diabetes management. 
 **Language:** English (spoken), Spanish (written preference) [2]
 
 ---
-[1] Social history
+[1] Social history — personal details
 [2] Communication preferences`
 
     case 'summary':
@@ -409,7 +410,7 @@ Flagged for poor care engagement. Missing follow-up appointments. Not enrolled i
 **Communication:** Visually impaired; English spoken, Spanish written [6]
 
 ---
-[1] Clinical record
+[1] Personal details — clinical record
 [2] Pharmacy fill history
 [3] Lab results
 [4] ER visit record
@@ -434,6 +435,343 @@ Try asking something like: *"What medications is Henry on?"* or *"When is the be
 ---
 *Haven has access to clinical, pharmacy, eligibility, and care management data for this member.*`
   }
+}
+
+function buildLisaResponse(intent) {
+  switch (intent) {
+    case 'medication':
+      return `**Current Medications**
+
+- **Lisinopril 10mg** — taken once daily (morning) [1]
+  - Prescribed 2 years ago for hypertension
+  - Class: ACE inhibitor
+
+- **Atorvastatin 40mg** — taken once nightly [1]
+  - Prescribed 2 years ago for hyperlipidemia
+  - Class: Statin
+
+**Adherence Status** ✅
+Lisa fills both prescriptions consistently and on schedule. Medication adherence is not a current concern. [2]
+
+**Clinical Note**
+Despite good adherence, BP remains elevated at 148/92 (target <130/80) and LDL is 118 mg/dL (target <100). May warrant dose adjustment or lifestyle counseling.
+
+**Recommended Action**
+Discuss BP and LDL trends at next PCP visit. Confirm dietitian referral is followed up.
+
+---
+[1] Pharmacy records
+[2] Medication fill history`
+
+    case 'adherence':
+      return `**Medication Adherence — Lisa Marie Thompson**
+
+**Summary:** Good adherence ✅
+
+- Lisinopril 10mg: fills consistently on schedule [1]
+- Atorvastatin 40mg: fills consistently on schedule [1]
+- No gaps in either medication over the past 12 months
+
+**Clinical Note**
+Good adherence is a positive engagement signal. However, BP (148/92) and LDL (118 mg/dL) remain above targets, suggesting medication dosing or lifestyle factors may need to be addressed. [2]
+
+**Suggested Conversation**
+- Acknowledge adherence — this is working well
+- Discuss dietary changes (low-sodium, heart-healthy diet)
+- Confirm dietitian referral is being followed up
+
+---
+[1] Pharmacy fill records
+[2] Lab results — clinical record`
+
+    case 'labs':
+      return `**Lab Results — Lisa Marie Thompson**
+
+| Test | Result | Target | Status |
+|------|--------|--------|--------|
+| Blood Pressure | **148/92 mmHg** | <130/80 mmHg | 🔴 Elevated [1] |
+| LDL Cholesterol | **118 mg/dL** | <100 mg/dL | 🟡 Above target [1] |
+| BMI | **28.4** | 18.5–24.9 | 🟡 Overweight [2] |
+
+**Interpretation**
+BP remains uncontrolled despite Lisinopril use. LDL is above target despite Atorvastatin. BMI in overweight range may be contributing to both conditions.
+
+**Contributing Factors**
+- Dietary habits — referral to dietitian in progress [3]
+- Family history: hypertension (mother), cardiac event (father at 62) [2]
+
+**Recommended Follow-Up**
+Discuss potential Lisinopril dose adjustment or adding a second antihypertensive. Ensure dietitian appointment is scheduled.
+
+---
+[1] Clinical lab results
+[2] Personal details — clinical record
+[3] Referral tracker`
+
+    case 'caregaps':
+      return `**Open Care Gaps — Lisa Marie Thompson**
+
+1. **Annual Wellness Visit** — overdue [1]
+   - Last PCP visit: January 8, 2025 (14+ months ago)
+   - Recommended annually for Medicare Advantage members
+
+2. **Mammogram** — overdue 14 months [1]
+   - Breast cancer screening recommended annually (ages 40–75)
+   - No record of completed mammogram in past 14 months
+
+**Why These Matter**
+- Wellness visits allow comprehensive review of BP, labs, and medication management
+- Mammograms are critical for early breast cancer detection
+
+**Barriers to Consider**
+- Work schedule — high school teacher, available after 4pm
+- No documented transportation or communication barriers
+
+**Suggested Outreach**
+Contact Lisa on weekdays after 4:00 PM to schedule both the wellness visit and mammogram referral.
+
+---
+[1] Care gap tracker`
+
+    case 'contact':
+      return `**Contact Preferences — Lisa Marie Thompson**
+
+**Preferred Window:** Weekdays after 4:00 PM [1]
+
+**Phone:** 312-555-0189
+
+**Why this window?**
+Lisa works as a high school teacher with a fixed school-day schedule. She is typically available after school ends at approximately 4:00 PM. [2]
+
+**Communication Profile**
+- No communication impairments [3]
+- Language: English only
+- No accessibility accommodations needed
+
+**Best Practice**
+1. Call on weekdays between 4:00–6:00 PM
+2. Leave a clear voicemail if no answer — she's responsive
+3. Can receive standard written materials (no large font or language requirements)
+
+---
+[1] Member preferences — phone numbers
+[2] Social history — personal details
+[3] Communication preferences`
+
+    case 'eligibility':
+      return `**Eligibility & Coverage — Lisa Marie Thompson**
+
+| Field | Value |
+|-------|-------|
+| Insurance | Medicare Advantage — BlueCross (Primary) [1] |
+| Status | Active |
+| Eligibility End | **December 31, 2026** [1] |
+| Member ID | AH0000042 |
+| Haven ID | AH00000044 |
+
+**No immediate action required.** Coverage is active through end of 2026.
+
+**Note:** Medicare Advantage members require annual wellness visits for full benefit utilization. Lisa's wellness visit is currently overdue.
+
+---
+[1] Eligibility system — insurance record`
+
+    case 'visits':
+      return `**Recent Clinical Visits — Lisa Marie Thompson**
+
+| Date | Type | Details |
+|------|------|---------|
+| January 8, 2025 | **PCP Visit** | Routine follow-up with BlueCross [1] |
+| No ER visits in past year | — | — |
+
+**Visit Context**
+Last PCP visit was over 14 months ago. Annual wellness visit is now overdue for her Medicare Advantage plan.
+
+**Key Discussion Points at Last Visit**
+- BP management reviewed
+- Atorvastatin and Lisinopril continued
+- Dietitian referral initiated — appointment not yet scheduled
+
+**Priority Action**
+Outreach to schedule overdue annual wellness visit. Confirm dietitian appointment status.
+
+---
+[1] PCP visit record`
+
+    case 'diagnosis':
+      return `**Active Diagnoses — Lisa Marie Thompson**
+
+1. **Hypertension (Essential)** — diagnosed ~2 years ago [1]
+   - ICD-10: I10
+   - Current BP: 148/92 mmHg (target <130/80)
+   - Treatment: Lisinopril 10mg daily (good adherence, not at goal)
+
+2. **Hyperlipidemia** — diagnosed ~2 years ago [1]
+   - ICD-10: E78.5
+   - Current LDL: 118 mg/dL (target <100 mg/dL)
+   - Treatment: Atorvastatin 40mg nightly (good adherence, not at goal)
+
+**Risk Factors**
+- BMI 28.4 (overweight) [2]
+- Family history: hypertension (mother), cardiac event (father at 62) [1]
+- Age 47 — approaching higher cardiovascular risk window
+
+**Monitoring Priorities**
+- BP reassessment at next visit
+- Consider cardiology referral given family history
+
+---
+[1] Clinical record — personal details
+[2] Lab results`
+
+    case 'services':
+      return `**Services & Programs — Lisa Marie Thompson**
+
+**Eligible & Not Yet Completed:**
+
+1. **Annual Wellness Visit** [1]
+   - Status: Overdue — not completed in past 14 months
+   - Covered by Medicare Advantage
+
+2. **Mammogram Screening** [1]
+   - Status: Care gap — overdue 14 months
+   - Covered by Medicare Advantage
+
+3. **Dietitian Consultation** [2]
+   - Status: Referral initiated, appointment not yet scheduled
+   - Goal: Support BP and cholesterol management through diet
+
+**Currently Active:**
+- Medicare Advantage coverage — BlueCross (active through Dec 31, 2026) [3]
+- PCP relationship with BlueCross
+
+---
+[1] Care gap tracker
+[2] Referral tracker
+[3] Eligibility system — insurance record`
+
+    case 'communication':
+      return `**Communication Profile — Lisa Marie Thompson**
+
+**Language**
+- Spoken: English [1]
+- Written: English [1]
+
+**Accessibility Needs**
+- No documented communication impairments [1]
+- No accessibility accommodations required
+
+**Preferred Contact**
+- Phone: 312-555-0189
+- Best time: Weekdays after 4:00 PM [2]
+
+**Outreach Best Practices**
+1. Call on weekdays after 4:00 PM (teacher — school day ends ~3:30 PM)
+2. Standard written materials are fine — no large font or translation needed
+3. Can be reached via voicemail if unavailable
+
+---
+[1] Communication preferences
+[2] Member preferences — phone numbers`
+
+    case 'flags':
+      return `**Active Alerts & Flags — Lisa Marie Thompson**
+
+🔴 **Uncontrolled Blood Pressure**
+BP at 148/92 mmHg — above target of <130/80 despite Lisinopril. [1]
+
+🟡 **Annual Wellness Visit Overdue**
+No wellness visit in 14+ months. Required annually for Medicare Advantage. [2]
+
+🟡 **Mammogram Overdue**
+Breast cancer screening overdue by 14 months. [2]
+
+🟡 **LDL Above Target**
+LDL at 118 mg/dL — above goal of <100 mg/dL despite Atorvastatin use. [1]
+
+🔵 **Dietitian Referral Pending**
+Referral initiated at last PCP visit (Jan 8, 2025). Appointment not yet scheduled. [3]
+
+🔵 **Family Cardiac History**
+Father had cardiac event at 62 — increased cardiovascular risk. [4]
+
+---
+[1] Lab results — clinical record
+[2] Care gap tracker
+[3] Referral tracker
+[4] Personal details — clinical record`
+
+    case 'demographics':
+      return `**Member Demographics — Lisa Marie Thompson**
+
+| Field | Value |
+|-------|-------|
+| Full Name | Lisa Marie Thompson |
+| Date of Birth | 05/15/1978 |
+| Age | 47 |
+| Member ID | AH0000042 |
+| Haven ID | AH00000044 |
+| Phone | 312-555-0189 |
+| Insurance | Medicare Advantage (BlueCross) |
+| Primary Care | BlueCross |
+| Eligibility End | December 31, 2026 |
+
+**Occupation:** High school teacher [1]
+**Language:** English (spoken and written) [2]
+
+---
+[1] Personal details — social history
+[2] Communication preferences`
+
+    case 'summary':
+      return `**Member Overview — Lisa Marie Thompson**
+
+Lisa is a 47-year-old female enrolled in Medicare Advantage (BlueCross), managing **hypertension** and **hyperlipidemia** (both diagnosed ~2 years ago). [1]
+
+**Key Clinical Concerns**
+- BP: **148/92 mmHg** — above target of <130/80 despite medication [2]
+- LDL: **118 mg/dL** — above target despite Atorvastatin use [2]
+- BMI: 28.4 (overweight) — contributing factor [2]
+
+**Engagement Status**
+Good medication adherence ✅. However, overdue on annual wellness visit and mammogram. Dietitian referral pending follow-up. [3]
+
+**Open Care Gaps**
+- Annual wellness visit (overdue 14+ months)
+- Mammogram (overdue 14 months)
+
+**Best Contact:** Weekdays after 4:00 PM | 312-555-0189
+**Communication:** No impairments; English only [4]
+
+---
+[1] Personal details — clinical record
+[2] Lab results
+[3] Care gap tracker
+[4] Communication preferences`
+
+    default:
+      return `**Haven — Member Information**
+
+I can help you find information about Lisa Marie Thompson. Here's what I have available:
+
+- **Medications & adherence** — Lisinopril, Atorvastatin, fill history
+- **Lab results** — Blood pressure, LDL cholesterol, BMI
+- **Care gaps** — Wellness visit, mammogram, dietitian referral
+- **Contact preferences** — best time and communication needs
+- **Clinical visits** — PCP encounters
+- **Eligibility & coverage** — Medicare Advantage status
+- **Active flags** — care management alerts
+
+Try asking something like: *"What are Lisa's open care gaps?"* or *"When is the best time to contact her?"*
+
+---
+*Haven has access to clinical, pharmacy, eligibility, and care management data for this member.*`
+  }
+}
+
+function buildResponse(intent, memberId) {
+  if (memberId === 'AH0000042') return buildLisaResponse(intent)
+  return buildHenryResponse(intent)
 }
 
 async function streamMock(text, res) {
@@ -465,19 +803,14 @@ app.post('/api/chat', async (req, res) => {
     const lastUser = [...messages].reverse().find(m => m.role === 'user')
     const question = lastUser?.content || ''
     const intent = classify(question)
-    const responseText = buildResponse(intent, question)
+    const responseText = buildResponse(intent, member?.id)
     await streamMock(responseText, res)
     res.write('data: {"type":"done"}\n\n')
     res.end()
     return
   }
 
-  const systemPrompt = SYSTEM_PROMPT
-    .replace('{memberName}', member?.name || 'Unknown')
-    .replace('{memberId}', member?.id || 'Unknown')
-    .replace('{dob}', member?.dob || 'Unknown')
-    .replace('{phone}', member?.preferredPhone || 'Unknown')
-    .replace('{pcp}', member?.primaryCareProvider || 'Unknown')
+  const systemPrompt = member?.id === 'AH0000042' ? LISA_SYSTEM : HENRY_SYSTEM
 
   try {
     const stream = client.messages.stream({

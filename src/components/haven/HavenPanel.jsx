@@ -226,7 +226,7 @@ export default function HavenPanel({ member, onClose, initialPos }) {
         {/* Chat area */}
         <div
           className="flex-1 overflow-y-auto flex flex-col px-3 py-3"
-          style={{ background: MUI.bgSubtle }}
+          style={{ background: '#F0FBFF' }}
         >
           {messages.length === 0
             ? showCapabilities
@@ -553,8 +553,37 @@ function MessageBubble({ message }) {
   )
 }
 
+// Maps section IDs to keywords that might appear in citation definitions
+const SECTION_KEYWORDS = {
+  'member-personal': ['personal detail', 'member detail', 'demographic', 'name', 'gender', 'dob', 'date of birth', 'member id', 'pronouns', 'orientation', 'identity', 'clinical record', 'social history', 'member profile'],
+  'member-phone': ['phone', 'contact', 'call', 'fax', 'telephone', 'preferred time', 'preference', 'reach', 'outreach', 'member prefer', 'contact prefer'],
+  'member-languages': ['language', 'communication', 'spoken', 'written', 'interpreter', 'impairment', 'braille', 'deaf', 'hearing', 'visual', 'spanish', 'english', 'large font', 'accessibility'],
+  'member-address': ['address', 'city', 'state', 'zip', 'county', 'location', 'postal'],
+  'member-medical-ids': ['medical id', 'insurance', 'policy', 'medicaid', 'medicare', 'eligibility', 'coverage', 'enroll', 'secondary ins', 'primary ins'],
+}
+
+// Parse [n] Description lines at the bottom of a response into a { num: sectionId } map
+function parseCitationMap(text) {
+  const map = {}
+  const citLineRe = /^\[(\d+)\]\s+(.+)$/
+  for (const line of text.split('\n')) {
+    const m = line.trim().match(citLineRe)
+    if (!m) continue
+    const num = m[1]
+    const desc = m[2].toLowerCase()
+    for (const [sectionId, keywords] of Object.entries(SECTION_KEYWORDS)) {
+      if (keywords.some(k => desc.includes(k))) {
+        map[num] = sectionId
+        break
+      }
+    }
+  }
+  return map
+}
+
 function FormattedResponse({ text }) {
   if (!text) return null
+  const citMap = parseCitationMap(text)
   const elements = []
   let key = 0
   for (const line of text.split('\n')) {
@@ -568,22 +597,47 @@ function FormattedResponse({ text }) {
       elements.push(
         <div key={key++} style={{ display: 'flex', gap: 8, fontSize: '0.875rem' }}>
           <span style={{ color: MUI.textSecondary, flexShrink: 0 }}>•</span>
-          <span>{renderCitations(line.slice(2))}</span>
+          <span>{renderCitations(line.slice(2), citMap)}</span>
         </div>
       )
     } else {
-      elements.push(<p key={key++} style={{ fontSize: '0.875rem', lineHeight: 1.6, margin: 0 }}>{renderCitations(line)}</p>)
+      elements.push(<p key={key++} style={{ fontSize: '0.875rem', lineHeight: 1.6, margin: 0 }}>{renderCitations(line, citMap)}</p>)
     }
   }
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>{elements}</div>
 }
 
-function renderCitations(text) {
-  return text.split(/(\[\d+\])/g).map((part, i) =>
-    /^\[\d+\]$/.test(part)
-      ? <sup key={i}><a href="#" style={{ color: MUI.primary, fontSize: '0.6875rem' }}>{part}</a></sup>
-      : part
-  )
+function renderCitations(text, citMap = {}) {
+  return text.split(/(\[\d+\])/g).map((part, i) => {
+    if (!/^\[\d+\]$/.test(part)) return part
+    const num = part.slice(1, -1)
+    const sectionId = citMap[num]
+    const label = sectionId
+      ? sectionId.replace('member-', '').replace(/-/g, ' ')
+      : null
+    return (
+      <sup key={i}>
+        <a
+          href="#"
+          onClick={e => {
+            e.preventDefault()
+            if (sectionId) {
+              document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }
+          }}
+          title={label ? `View ${label}` : undefined}
+          style={{
+            color: MUI.primary,
+            fontSize: '0.6875rem',
+            cursor: sectionId ? 'pointer' : 'default',
+            textDecoration: sectionId ? 'underline' : 'none',
+          }}
+        >
+          {part}
+        </a>
+      </sup>
+    )
+  })
 }
 
 function AiSparkle({ active }) {

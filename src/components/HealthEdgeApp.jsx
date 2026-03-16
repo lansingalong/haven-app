@@ -7,15 +7,8 @@ import MemberDetails from './MemberDetails'
 import HavenPanel from './haven/HavenPanel'
 import MemberChatWindow from './MemberChatWindow'
 
-export default function HealthEdgeApp() {
-  const [havenOpen, setHavenOpen] = useState(false)
-  const havenBtnRef = useRef(null)
-  const [toolbarCollapsed, setToolbarCollapsed] = useState(false)
-
-  const [chatOpen, setChatOpen] = useState(false)
-  const chatBtnRef = useRef(null)
-
-  const member = {
+export const MEMBERS = [
+  {
     name: 'Henry Tom Garcia',
     firstName: 'Henry',
     lastName: 'Garcia',
@@ -26,6 +19,87 @@ export default function HealthEdgeApp() {
     primaryCareProvider: 'Ambetter',
     havensName: 'Henry James Garcia',
     havensMemberId: 'AH00000009',
+    // MemberDetails fields
+    gender: 'Male',
+    preferredName: 'Preferred Name xbeew',
+    genderIdentity: 'Male',
+    sexualOrientation: null,
+    preferredPronouns: 'He/him/his',
+    primaryPhone: '259-391-3698',
+    cellPhone: '111-111-1111',
+    alternatePhone: '909-851-3064',
+    fax: '233-366-0778',
+    preferredCallTime: 'M-F 12pm-1pm',
+    primaryLanguage: 'English',
+    writtenLanguage: 'Spanish',
+    spokenLanguage: 'English',
+    communicationImpairments: 'Visually Impaired, Large Font, Hard of Hearing, Illiterate, Interpreter Needed, Braille Needed, Deaf, Aphasic',
+    address: 'Address gikmt',
+    city: 'CityElgM',
+    state: 'VA',
+    zip: '20191',
+    county: 'ADA COUNTY',
+    country: null,
+    primaryInsurance: null,
+    primaryPolicyNum: 'XvAicS',
+    secondaryInsurance: 'Medicaid',
+    secondaryPolicyNum: '98767682',
+  },
+  {
+    name: 'Lisa Marie Thompson',
+    firstName: 'Lisa',
+    lastName: 'Thompson',
+    id: 'AH0000042',
+    dob: '05/15/1978',
+    age: '47',
+    preferredPhone: '312-555-0189',
+    primaryCareProvider: 'BlueCross',
+    havensName: 'Lisa Marie Thompson',
+    havensMemberId: 'AH00000044',
+    // MemberDetails fields
+    gender: 'Female',
+    preferredName: null,
+    genderIdentity: 'Female',
+    sexualOrientation: null,
+    preferredPronouns: 'She/her/hers',
+    primaryPhone: '312-555-0189',
+    cellPhone: '312-555-0201',
+    alternatePhone: null,
+    fax: null,
+    preferredCallTime: 'Weekdays after 4:00 PM',
+    primaryLanguage: 'English',
+    writtenLanguage: 'English',
+    spokenLanguage: 'English',
+    communicationImpairments: null,
+    address: '4821 Maple Avenue',
+    city: 'Chicago',
+    state: 'IL',
+    zip: '60614',
+    county: 'COOK COUNTY',
+    country: 'United States',
+    primaryInsurance: 'Medicare Advantage',
+    primaryPolicyNum: 'MCR442019',
+    secondaryInsurance: null,
+    secondaryPolicyNum: null,
+  },
+]
+
+export default function HealthEdgeApp() {
+  const [activeMemberId, setActiveMemberId] = useState('AH0000007')
+  const member = MEMBERS.find(m => m.id === activeMemberId)
+
+  const [havenOpen, setHavenOpen] = useState(false)
+  const havenBtnRef = useRef(null)
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(false)
+
+  const [chatOpen, setChatOpen] = useState(false)
+  const chatBtnRef = useRef(null)
+
+  const handleMemberChange = (memberId) => {
+    if (memberId === activeMemberId) return
+    setActiveMemberId(memberId)
+    setHavenOpen(false)
+    setChatOpen(false)
   }
 
   return (
@@ -33,7 +107,12 @@ export default function HealthEdgeApp() {
 
       {/* Top header */}
       <Header />
-      <NavToolbar member={member} />
+      <NavToolbar
+        member={member}
+        members={MEMBERS}
+        activeMemberId={activeMemberId}
+        onMemberChange={handleMemberChange}
+      />
 
       {/* Member banner */}
       <MemberBanner member={member} />
@@ -67,7 +146,7 @@ export default function HealthEdgeApp() {
           {/* Divider */}
           <div className="w-px h-8 bg-gray-200" />
 
-          {/* Henry Garcia chat button */}
+          {/* Member chat button */}
           <button
             ref={chatBtnRef}
             onClick={() => setChatOpen(o => !o)}
@@ -86,7 +165,7 @@ export default function HealthEdgeApp() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z" />
             </svg>
-            Henry Garcia
+            {member.firstName} {member.lastName}
           </button>
 
           {/* Divider */}
@@ -111,7 +190,7 @@ export default function HealthEdgeApp() {
         </>}
       </div>
 
-      {/* Haven floating window — always occupies rightmost slot */}
+      {/* Haven floating window */}
       {havenOpen && (() => {
         const panelW = Math.min(400, window.innerWidth - 16)
         const panelH = Math.min(620, window.innerHeight - 80)
@@ -122,6 +201,7 @@ export default function HealthEdgeApp() {
         const x = window.innerWidth - panelW - 4
         return (
           <HavenPanel
+            key={member.id}
             member={member}
             initialPos={{ x, y }}
             onClose={() => setHavenOpen(false)}
@@ -129,7 +209,7 @@ export default function HealthEdgeApp() {
         )
       })()}
 
-      {/* Member chat window — sits to the left of Haven slot */}
+      {/* Member chat window */}
       {chatOpen && (() => {
         const havenW = Math.min(400, window.innerWidth - 16)
         const chatW = Math.min(380, window.innerWidth - 16)
@@ -142,6 +222,7 @@ export default function HealthEdgeApp() {
         const x = Math.max(4, havenX - chatW - gap)
         return (
           <MemberChatWindow
+            key={member.id}
             member={member}
             initialPos={{ x, y }}
             onClose={() => setChatOpen(false)}
