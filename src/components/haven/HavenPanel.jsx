@@ -494,18 +494,14 @@ function MessageBubble({ message }) {
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Bubble */}
+        {/* Response — no bubble, plain text */}
         <div
           style={{
-            background: MUI.bgPaper,
-            borderRadius: '4px 18px 18px 18px',
-            padding: message.streaming && !message.content ? '8px 14px' : '10px 14px',
+            padding: message.streaming && !message.content ? '4px 2px' : '2px 0',
             fontSize: '0.875rem',
             color: MUI.textPrimary,
             fontFamily: MUI.font,
             lineHeight: 1.65,
-            boxShadow: MUI.elevation1,
-            border: `1px solid ${MUI.divider}`,
           }}
         >
           {message.streaming && !message.content
