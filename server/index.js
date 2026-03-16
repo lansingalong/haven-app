@@ -443,6 +443,11 @@ async function streamMock(text, res) {
   }
 }
 
+// ─── Serve built frontend in production ───────────────────────────────────────
+
+const distPath = join(__dirname, '../dist')
+app.use(express.static(distPath))
+
 // ─── Route ────────────────────────────────────────────────────────────────────
 
 app.post('/api/chat', async (req, res) => {
@@ -495,6 +500,11 @@ app.post('/api/chat', async (req, res) => {
     res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`)
     res.end()
   }
+})
+
+// SPA fallback — serve index.html for all non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(join(distPath, 'index.html'))
 })
 
 const PORT = process.env.PORT || 3001
