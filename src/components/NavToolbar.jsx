@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 export default function NavToolbar({ member, members, activeMemberId, onMemberChange }) {
   const [overlayOpen, setOverlayOpen] = useState(false)
@@ -199,6 +199,11 @@ export default function NavToolbar({ member, members, activeMemberId, onMemberCh
 }
 
 function MemberOverlay({ members, activeMemberId, anchorRef, onSelect, onClose }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   const rect = anchorRef.current?.getBoundingClientRect()
   const left = rect ? rect.left : 0
   const top = rect ? rect.bottom + 4 : 0
