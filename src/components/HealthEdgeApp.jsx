@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Header from './Header'
 import NavToolbar from './NavToolbar'
 import MemberBanner from './MemberBanner'
@@ -98,9 +98,13 @@ export default function HealthEdgeApp() {
   const handleMemberChange = (memberId) => {
     if (memberId === activeMemberId) return
     setActiveMemberId(memberId)
+  }
+
+  // Always close panels when member changes
+  useEffect(() => {
     setHavenOpen(false)
     setChatOpen(false)
-  }
+  }, [activeMemberId])
 
   return (
     <div className="flex flex-col h-full bg-white overflow-hidden relative">
