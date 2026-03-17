@@ -71,10 +71,10 @@ export default function HavenPanel({ member, onClose, initialPos }) {
     const onResize = () => {
       const { w, h } = getPanelSize()
       setPanelSize({ w, h })
-      setPos(p => ({
-        x: Math.max(0, Math.min(window.innerWidth - w, p.x)),
-        y: Math.max(0, Math.min(window.innerHeight - h, p.y)),
-      }))
+      setPos({
+        x: window.innerWidth - w - 4,
+        y: Math.max(4, window.innerHeight - h - 80),
+      })
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
