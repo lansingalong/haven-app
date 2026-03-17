@@ -38,7 +38,9 @@ export default function MemberChatWindow({ member, onClose, initialPos }) {
     h: Math.min(560, window.innerHeight - 80),
   })
   const [panelSize, setPanelSize] = useState(getPanelSize)
-  const [pos, setPos] = useState(initialPos ?? { x: 100, y: 100 })
+  const panelSizeRef = useRef(getPanelSize())
+  const [pos, setPos] = useState(null)
+  const panelRef = useRef(null)
   const dragging = useRef(false)
   const dragOffset = useRef({ x: 0, y: 0 })
 
@@ -48,26 +50,29 @@ export default function MemberChatWindow({ member, onClose, initialPos }) {
 
   const onMouseDown = useCallback((e) => {
     dragging.current = true
-    dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y }
+    const rect = panelRef.current?.getBoundingClientRect()
+    const curX = rect ? rect.left : Math.max(4, window.innerWidth - 400 - panelSizeRef.current.w - 12)
+    const curY = rect ? rect.top : Math.max(4, window.innerHeight - panelSizeRef.current.h - 76)
+    dragOffset.current = { x: e.clientX - curX, y: e.clientY - curY }
+    setPos(p => p ?? { x: curX, y: curY })
     e.preventDefault()
-  }, [pos])
+  }, [])
 
   useEffect(() => {
     const onMove = (e) => {
       if (!dragging.current) return
+      const { w, h } = panelSizeRef.current
       setPos({
-        x: Math.max(0, Math.min(window.innerWidth - panelSize.w, e.clientX - dragOffset.current.x)),
-        y: Math.max(0, Math.min(window.innerHeight - panelSize.h, e.clientY - dragOffset.current.y)),
+        x: Math.max(0, Math.min(window.innerWidth - w, e.clientX - dragOffset.current.x)),
+        y: Math.max(0, Math.min(window.innerHeight - h, e.clientY - dragOffset.current.y)),
       })
     }
     const onUp = () => { dragging.current = false }
     const onResize = () => {
-      const { w, h } = getPanelSize()
-      setPanelSize({ w, h })
-      setPos({
-        x: Math.max(4, window.innerWidth - 400 - w - 12),
-        y: Math.max(4, window.innerHeight - h - 80),
-      })
+      const s = getPanelSize()
+      panelSizeRef.current = s
+      setPanelSize(s)
+      setPos(null) // snap back to CSS right/bottom anchor
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
@@ -94,10 +99,10 @@ export default function MemberChatWindow({ member, onClose, initialPos }) {
 
   return (
     <div
+      ref={panelRef}
       className="fixed z-50 flex flex-col bg-white rounded-xl overflow-hidden select-none"
       style={{
-        left: pos.x,
-        top: pos.y,
+        ...(pos ? { left: pos.x, top: pos.y } : { right: 412, bottom: 76 }),
         width: panelSize.w,
         height: panelSize.h,
         boxShadow: '0 8px 40px rgba(0,0,0,0.20), 0 2px 10px rgba(0,0,0,0.10)',
