@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 
-const INITIAL_MESSAGES = [
+const getInitialMessages = (member) => [
   {
     id: 1,
     type: 'member',
@@ -13,8 +13,8 @@ const INITIAL_MESSAGES = [
     sender: 'Nicholas F.',
     role: 'Care Manager',
     time: '12/3/2025 9:01 AM',
-    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/320px-Camponotus_flavomarginatus_ant.jpg',
-    imageAlt: 'Aspirin bottle',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Pill_bottle_3%2C_spilled.jpg/320px-Pill_bottle_3%2C_spilled.jpg',
+    imageAlt: 'Pill bottle',
     action: 'Take two as needed',
   },
   {
@@ -23,12 +23,12 @@ const INITIAL_MESSAGES = [
     sender: 'Nicholas F.',
     role: 'Care Manager',
     time: '12/3/2025 9:03 AM',
-    text: 'Henry said their pain was much worse',
+    text: `${member.firstName} said their pain was much worse`,
   },
 ]
 
 export default function MemberChatWindow({ member, onClose, initialPos }) {
-  const [messages, setMessages] = useState(INITIAL_MESSAGES)
+  const [messages, setMessages] = useState(() => getInitialMessages(member))
   const [input, setInput] = useState('')
   const [filter, setFilter] = useState('All')
   const chatEndRef = useRef(null)

@@ -88,7 +88,7 @@ export default function Header() {
         <div className="text-[10px] leading-tight flex-shrink-0">
           <div>
             <span className="text-gray-500">Welcome </span>
-            <span className="text-blue-600 font-semibold cursor-pointer hover:underline">Prudhvi</span>
+            <span className="text-blue-600 font-semibold cursor-pointer hover:underline">Lansing</span>
           </div>
           <div className="text-gray-500">All Access Admin</div>
           <div className="text-gray-500">Time zone: <span className="font-medium text-gray-700">EST</span></div>
